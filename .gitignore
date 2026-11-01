@@ -1,0 +1,14 @@
+# Build artifacts
+app/target/
+*.jar
+
+# Runtime logs (bind mount)
+host_logs/*
+!host_logs/.gitkeep
+
+# OS
+.DS_Store
+
+.idea/
+*.iml
+.vscode/

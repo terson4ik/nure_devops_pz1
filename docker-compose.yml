@@ -1,0 +1,61 @@
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: library_db
+    environment:
+      POSTGRES_USER: libuser
+      POSTGRES_PASSWORD: libpass
+      POSTGRES_DB: librarydb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - library_net
+    ports:
+      - "5432:5432"
+    # БД готова приймати з'єднання?
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U libuser -d librarydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: library_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@lib.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - library_net
+    depends_on:
+      - postgres-db
+
+
+  java-app:
+    build:
+      context: ./app
+    container_name: library_api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/librarydb
+      SPRING_DATASOURCE_USERNAME: libuser
+      SPRING_DATASOURCE_PASSWORD: libpass
+    volumes:
+      - ./host_logs:/opt/app/logs
+    networks:
+      - library_net
+    depends_on:
+      postgres-db:
+        condition: service_healthy # чекає повної готовності БД
+
+volumes:
+  db_data:
+
+networks:
+  library_net:
+    driver: bridge
